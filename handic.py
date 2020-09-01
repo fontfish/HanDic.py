@@ -36,9 +36,9 @@ import re
 
 def user_input(mode, searches):
     print("""
-MODE: %s            SEARCHES: %s
+ Hanzi CEDIC viewer         SEARCH MODE: %s           SEARCHES: %s
 ________________________________________________________________________
-*1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
+ *1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
 """ % (mode, searches))
     uin = input(">>> ")
     if len(uin) > 0 and uin[0] == '*':
@@ -49,9 +49,11 @@ ________________________________________________________________________
         elif uin.lower() == '*m' or uin == '*3':
             mode = "Meaning"
         elif uin.lower() == '*k' or uin == '*4':
-            print()
-            print("Pinyin key:   1 = –     2 = /     3 = V     4 = \\     5 = blank tone")
-            print()
+            print("""
+------------------------------------------------------------------------
+ Pinyin key:    1 = –     2 = /     3 = V     4 = \\     5 = blank tone
+------------------------------------------------------------------------
+""")
         elif uin.lower() == '*q':
             mode = "QUIT"
         result = {}
@@ -124,13 +126,14 @@ def print_results(result):
     if len(result) > 0:
         for l in result:
             hanzi = result[l][0].split()
-            print()
+            meanings = result[l][2].split('/')
             print()
             print("-------------------------")
             print()
             print(hanzi[1] + "  （" + hanzi[0] + "）  " + result[l][1])
             print("")
-            print(result[l][2])
+            for m in meanings:
+                print(m.capitalize())
         print()
         print("-------------------------")
         print()
