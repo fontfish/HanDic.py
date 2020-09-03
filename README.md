@@ -8,6 +8,11 @@ https://www.mdbg.net/chinese/dictionary?page=cedict
 Inspired by the bash script on this page:
 https://mandarinportal.com/a-script-to-easily-search-traditional-chinese-words-with-cc-cedict-in-linux/
 
+There are two versions: `handic.py` and `handic_lite.py`. The lite version
+removes the use of regex in the script, avoiding an error that occurs
+on some systems with the standard version, and is also formatted for ease
+of use on narrower terminals such as on phones or very small screens.
+
 ### Usage
 To use, simply place the CC-CEDICT file named as `cedict_ts.u8` in the
 same directory and run `python3 handic.py`.

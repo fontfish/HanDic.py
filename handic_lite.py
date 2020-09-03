@@ -32,13 +32,15 @@
 #  MA 02110-1301, USA.
 #
 
-import re
-
 def user_input(dictfile, mode, searches):
     print("""
- SEARCH MODE: %s      -- Hanzi CEDICT Viewer --       SEARCHES: %s
-________________________________________________________________________
- *1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
+
+           -- Hanzi CEDICT Viewer --
+-------------------------------------------------
+     SEARCH MODE: %s      SEARCHES: %s
+-------------------------------------------------
+ *1 = Hanzi       *2 = Pinyin       *3 = Meaning
+ *4 = Pinyin Key  *Q  = Quit
 """ % (mode, searches))
     uin = input(">>> ")
     if len(uin) > 0 and uin[0] == '*':
@@ -49,14 +51,14 @@ ________________________________________________________________________
         elif uin.lower() == '*m' or uin == '*3':
             mode = "Meaning"
             print("""  Warning:
-  Searching by meaning may return an unweildy number of results.
-  It is advised to narrow your searches by using multiple search terms.
+  Searching by meaning may return an unweildy
+  number of results.
 """)
         elif uin.lower() == '*k' or uin == '*4':
             print("""
-------------------------------------------------------------------------
- Pinyin key:    1 = –     2 = /     3 = V     4 = \\     5 = blank tone
-------------------------------------------------------------------------
+-------------------------------------------------
+ Pinyin:  1 = –  2 = /  3 = V  4 = \\  5 = blank
+-------------------------------------------------
 """)
         elif uin.lower() == '*q':
             mode = "QUIT"
@@ -76,15 +78,6 @@ ________________________________________________________________________
     else:
         result = {}
     return mode, result, searches
-
-# Alternative possible header.
-"""
-                       -- Hanzi CEDICT viewer --
-------------------------------------------------------------------------
- *1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
-________________________________________________________________________
-       SEARCH MODE: %s                       SEARCHES: %s
-"""
 
 # It may be preferable to use the commented-out “line.find(query)” line if looking for an exact match,
 # though the “x in line for x in query” search allows for the removal of separating dots:
@@ -112,7 +105,8 @@ def search_pinyin(dictfile, query):
                 line = line.rstrip()
                 occur = 0
                 if line[0] != "#" and all(x in line.lower() for x in ql):
-                    py = re.split(r'\[|\]', line.lower())[1]
+                    py = line.lower().split('[')[1]
+                    py = py.split(']')[0]
                     py = py.replace('· ', '').replace('・', ' ')
                     py = py.split()
                     if len(py) == len(ql):
@@ -137,7 +131,11 @@ def search_meaning(dictfile, query):
             if line[0] != "#" and all(x in line.lower() for x in ql):
                 count = 0
                 for q in ql:
-                    if re.search(rf'\b{re.escape(q)}\b', line[line.find(']'):], re.IGNORECASE):
+                    if line[line.find(']'):].find(q + ' ') >= 0:
+                        count += 1
+                    elif line[line.find(']'):].find(' ' + ' ') >= 0:
+                        count += 1
+                    elif q == line.split()[-1]:
                         count += 1
                 if count >= len(ql):
                     results.append(line)
@@ -149,7 +147,7 @@ def print_results(results):
         print()
         for r in results:
             hanzi = r.split(' ',2)
-            pinyin = hanzi[2][1:].split('] ')# Previously re.split(r'\[|\]\s', r[2][1:])
+            pinyin = hanzi[2][1:].split('] ')
             meaning = pinyin[1].split('/')
             print()
             print("-------------------------")
@@ -168,9 +166,10 @@ mode = "Hanzi  "# "Pinyin " "Meaning"
 searches = 0
 uin = "0"
 print("""
-------------------------------------------------------------------------
-Type an asterisk (*) followed by the search mode number to change mode.
-------------------------------------------------------------------------
+-------------------------------------------------
+To change mode, type an asterisk (*) followed by
+the search mode number.
+-------------------------------------------------
 """)
 
 while mode != "QUIT":
