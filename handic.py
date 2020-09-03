@@ -34,9 +34,9 @@
 
 import re
 
-def user_input(mode, searches):
+def user_input(dictfile, mode, searches):
     print("""
- Hanzi CEDIC viewer         SEARCH MODE: %s           SEARCHES: %s
+ SEARCH MODE: %s      -- Hanzi CEDICT viewer --       SEARCHES: %s
 ________________________________________________________________________
  *1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
 """ % (mode, searches))
@@ -48,6 +48,9 @@ ________________________________________________________________________
             mode = "Pinyin "
         elif uin.lower() == '*m' or uin == '*3':
             mode = "Meaning"
+            print("""  Warning:
+  Searching by meaning may bring up an unweildy number of results.
+""")
         elif uin.lower() == '*k' or uin == '*4':
             print("""
 ------------------------------------------------------------------------
@@ -59,86 +62,107 @@ ________________________________________________________________________
         result = {}
     elif len(uin) > 0:
         if mode == "Hanzi  ":
-            result = search_hanzi(uin)
+            result = search_hanzi(dictfile, uin)
         elif mode == "Pinyin ":
-            result = search_pinyin(uin)
+            result = search_pinyin(dictfile, uin)
         elif mode == "Meaning":
-            result = search_meaning(uin)
+            result = search_meaning(dictfile, uin)
+        if len(result) < 1:
+            print()
+            print("  No search results found.")
+            print()
         searches += 1
     else:
         result = {}
     return mode, result, searches
 
-def search_hanzi(query):
-    newvar = 0
-    results = {}
-    with open("cedict_ts.u8", 'r') as cedict:
+# Alternative possible header.
+"""
+                       -- Hanzi CEDICT viewer --
+------------------------------------------------------------------------
+ *1 = Hanzi   *2 = Pinyin   *3 = Meaning   *4 = Pinyin Key   *Q  = Quit
+________________________________________________________________________
+       SEARCH MODE: %s                       SEARCHES: %s
+"""
+
+# It may be preferable to use the commented-out “line.find(query)” line if looking for an exact match,
+# though the “x in line for x in query” search allows for the removal of separating dots:
+# A search for “齊內丁齊達內” will still return “齊內丁·齊達內”, for instance.
+def search_hanzi(dictfile, query):
+    results = []
+    with open(dictfile, 'r') as cedict:
         for line in cedict:
-            if line[0] != "#" and line.find(query) >= 0:
-                line = re.split(r'\[|\]', line)
-                hanzi = line[0].split()
-                if hanzi[0] == query or hanzi[1] == query:
-                    results[newvar] = line
-                    newvar += 1
+            line = line.rstrip()
+            if line[0] != "#" and all(x in line for x in query):
+#            if line[0] != "#" and line.find(query) >= 0:
+                line = line.rstrip()
+                han = line.replace('·', '').replace('・', '')# This line is of no use if using “line.find(query)”
+                han = han.split(' ', 2)
+                if han[0] == query or han[1] == query:
+                    results.append(line)
     return results
 
-
-def search_pinyin(query):
+def search_pinyin(dictfile, query):
     if len(query) > 0:
-        newvar = 0
-        results = {}
+        results = []
         ql = query.lower().split()
-        with open("cedict_ts.u8", 'r') as cedict:
+        with open(dictfile, 'r') as cedict:
             for line in cedict:
-                count = 0
-                if line[0] != "#" and all(x in line for x in ql):
-                    line = re.split(r'\[|\]', line)
-                    py = line[1].split()
+                line = line.rstrip()
+                occur = 0
+                if line[0] != "#" and all(x in line.lower() for x in ql):
+                    py = re.split(r'\[|\]', line.lower())[1]
+                    py = py.replace('· ', '').replace('・', ' ')
+                    py = py.split()
                     if len(py) == len(ql):
                         for p, q in zip(py, ql):
-                            if p == q or re.match(rf'{re.escape(q)}\d', p, re.IGNORECASE):
-                                count += 1
-                if count == len(ql):
-                    results[newvar] = line
-                    newvar += 1
+                            if q[-1].isdigit() and p == q:
+                                occur += 1
+                            elif p[-1].isdigit() and p[:-1] == q:
+                                occur += 1
+                            elif p == q:
+                                occur += 1
+                if occur == len(ql):
+                    results.append(line)
         return results
 
 
-def search_meaning(query):
-    newvar = 0
-    results = {}
-    ql = query.split()
-    with open("cedict_ts.u8", 'r') as cedict:
+def search_meaning(dictfile, query):
+    results = []
+    ql = query.lower().split()
+    with open(dictfile, 'r') as cedict:
         for line in cedict:
-            if line[0] != "#" and all(x in line for x in ql):
+            line = line.rstrip()
+            if line[0] != "#" and all(x in line.lower() for x in ql):
                 count = 0
-                line = re.split(r'\[|\]', line)
                 for q in ql:
-                    if re.search(rf'\b{re.escape(q)}\b', line[2], re.IGNORECASE):
+                    if re.search(rf'\b{re.escape(q)}\b', line[line.find(']'):], re.IGNORECASE):
                         count += 1
-                if count == len(ql):
-                    results[newvar] = line
-                    newvar += 1
+                if count >= len(ql):
+                    results.append(line)
         return results
 
 
-def print_results(result):
-    if len(result) > 0:
-        for l in result:
-            hanzi = result[l][0].split()
-            meanings = result[l][2].split('/')
+def print_results(results):
+    if len(results) > 0:
+        print()
+        for r in results:
+            hanzi = r.split(' ',2)
+            pinyin = hanzi[2][1:].split('] ')# Previously re.split(r'\[|\]\s', r[2][1:])
+            meaning = pinyin[1].split('/')
             print()
             print("-------------------------")
             print()
-            print(hanzi[1] + "  （" + hanzi[0] + "）  " + result[l][1])
-            print("")
-            for m in meanings:
-                print(m.capitalize())
+            print("  " + hanzi[1] + "　（" + hanzi[0] + "）　" + pinyin[0])
+            print()
+            for i in meaning:
+                if len(i) > 0 and not i.isspace():
+                    print("  " + i.capitalize() + ".")
         print()
         print("-------------------------")
         print()
 
-
+dictfile = "cedict_ts.u8"
 mode = "Hanzi  "# "Pinyin " "Meaning"
 searches = 0
 uin = "0"
@@ -149,5 +173,5 @@ Type an asterisk (*) followed by the search mode number to change mode.
 """)
 
 while mode != "QUIT":
-    mode, result, searches = user_input(mode, searches)
-    print_results(result)
+    mode, results, searches = user_input(dictfile, mode, searches)
+    print_results(results)
