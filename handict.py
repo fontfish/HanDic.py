@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
-#  handic.py, a handy Han dictionary for Mandarin learners who want an
+#  handict.py, a handy Han dictionary for Mandarin learners who want an
 #  easy offline dictionary on Linux.
 #
 #  Requires the CC-CEDICT file to work. Download here:
